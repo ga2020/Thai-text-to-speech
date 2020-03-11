@@ -1,0 +1,375 @@
+<html>
+  <head> 
+    <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+
+  <title>FMT text to speech</title>
+   <script src='js/thaicut_w2s3.js'> </script>
+   <script src="js/toastr.min.js"></script>
+	<link rel="stylesheet" href="./css/toastr.min.css">
+
+	<style>
+      body { background: black; margin:0; padding:0;}
+</style>
+  </head>
+  <body>
+  <div id="snackbar"></div>
+  <div align="center">
+	  <h3>FMT text to speech</h3 <br/><br/>
+     <textarea id="input" rows="10" cols="120"></textarea><br>
+	<button onclick="convertNow();">Convert</button>
+</div>
+<div align="center">
+	<textarea id="output" rows="10" cols="120"></textarea><br>
+	<button onclick="speakNow();">speak</button>
+	<button onclick="cleanNow();">Claen Monitor</button><br>
+	<label for="filterType">Filter</label>
+	<select id ="filterType">
+	<option value="lowpass" selected>lowpass</option>
+	<option value="highpass">highpass</option>
+	<option value="bandpass">bandpass</option>
+	<option value="lowshelf">lowshelf</option>
+	<option value="highshelf">highshelf</option>
+	<option value="peaking">peaking</option>
+	<option value="notch">notch</option>
+	<option value="allpass">allpass</option>
+</select><br>
+	<label for="Speed">Speed</label>
+	<input name="Speed" id="Speed" type="range" min="0.5" max="1.5" value="1" step="0.1" /><spand id ="SpeedValue"> 1.0 </span>
+</div>
+<div align="center">
+	<textarea id="monitor" rows="10" cols="120"></textarea><br>
+</div>
+  </body>  
+    <script>
+var audioContext = new AudioContext();
+//Map
+var ctlcom= ['g','gr','gl','gw','kh','kh','kh','khr','khl','khw','kh','kh','ng','j','ch','ch','s','ch','y','d','dt','th','th','th','n','d','dr','dt','dtr','th','th','thr','th','n','b','br','bl','bp','bpr','bpl','ph','phr','phl','f','ph','phr','phl','f','fr','fl','ph','phr','phl','m','y','r','l','w','s','sr','s','sr','s','sr','h','l','','h'];
+var vtlcom = ['a','a','a','aa','am','i','ee','eu','euu','oo','uu','aeh','aae','o:','ai','ai','aaw','uaa','ua','eeuy','e','e','uh','uuhr','eer','ao','ia','iia','eua','euua','euu','ae','ae','oh','aw','ai','ai','aai','aawy','aaw','uaa','iaao','euuay','aao','uuay','aayo','aaeo','ooy','iu','uy','eo','uay'];
+var cFMT= ['g:1','g:0.7|r:0.3','g:0.7|l:0.3','g:0.7|v:0.3','c:1','c:1','c:1','c:0.7|r:0.3','c:0.7|l:0.3','c:0.7|v:0.3','c:1','c:1','ng:1','j:1','ch:1','ch:1','s:1','ch:1','y:1','d:1','th:1','t:1','t:1','t:1','n:1','d:1','d:0.7|r:0.3','th:1','th:0.7|v:0.3','t:1','t:0.7|r:0.3','ch:1','t:1','n:1','b:1','b:0.7|r:0.3','b:0.7|l:0.3','b:0.7|p:0.3','b:0.7|p:0.3|r:0.3','b:0.7|p:0.3|l:0.3','ph:1','ph:0.7|r:0.3','ph:0.7|l:0.3','f:1','ph:1','ph:0.7|r:0.3','ph:0.7|l:0.3','f:1','f:0.7|r:0.3','f:0.7|l:0.3','ph:1','ph:0.7|r:0.3','ph:0.7|l:0.3','m:1','y:1','r:1','l:1','v:1','s:1','s:0.7|r:0.3','s:1','s:0.7|r:0.3','s:1','s:0.7|r:0.3','s:1','s:0.7|r:0.3','','h:1'];
+var vFMT = ['ar:0.18','ar:0.25','ar:0.5','ar:1','ar:0.5|_m:1','ee:0.25','ee:1','eu:0.25','eu:1','ua:0.25','ua:1','a:1','ae:1','o:1','ar:0.5|_y:1','ar:0.5|_y:1','or:1','u:1|ar:1','u:1|ar:0.25','er:1|_y:1','a:0.25','a:0.25','er:0.25','er:1','er:1','ar:0.5|_v:1','ee:1|ae:0.25','ee:1|ae:1','e:0.5|ar:0.25','eu:1|ar:1','eu:1','ae:0.25','ae:0.25','or:0.25','or:0.25','ar:0.5|_y:1','ar:0.5|_y:1','ar:1|_y:1','or:1|_y:1','or:1','u:1','ee:1|ar:1|_v:1','oua:1|_y:1','ar:1|_v:1','ua:1|_y:1','a:1|_v:1','ae:1|_v:1','o:1|_y:1','ee:0.25|_v:1','u:0.25|_y:1','er:0.25|ar:1','u:1|_y:1'];
+var ftlcom= ['k','ng','t','n','p','m','y','v'];
+var fFMT= ['_k:1','_ng:1','_d:1','_n:1','_b:1','_m:1','_y:1','_w:1'];
+var tone0=[1,1,1.2,1,1.2];
+var tone1=[1,1,1,1,1];
+var tone2=[1,0.95,1.2,1,0.8];
+var tone3=[1,0.9,1.1,1.2,0.8];
+var tone4=[1,0.85,1,1.2,0.8];
+var tone5=[1,0.83,0.95,1.4,0.8];
+var tone6=[1,0.8,0.9,1.4,1];
+var tone7=[1,0.8,0.85,1.2,1.2];
+var tone8=[1,0.8,0.8,1.2,1.2];
+var kspeed = 1;
+//var filterSet = [ 'lowpass','highpass', 'bandpass', 'lowshelf', 'highshelf', 'peaking', 'notch' ,'allpass'];
+var kfilter = 'lowpass';
+
+function convertNow(){
+	var ucut  = numreplace_rule(document.getElementById("input").value);
+	document.getElementById("output").value = thaicut(ucut).join("|");
+}	
+function cleanNow(){
+	document.getElementById("monitor").value = "";
+}
+var filterTypeControl = document.getElementById('filterType');
+filterTypeControl.addEventListener("change", function() {
+	kfilter = this.options[this.selectedIndex].text;
+});
+
+var SpeedControl = document.getElementById('Speed');
+	SpeedControl.addEventListener('input', function() {
+    kspeed = Number(this.value);
+	document.getElementById('SpeedValue').innerHTML = kspeed.toFixed(1);
+}, false);
+
+
+// Global declarations
+const SAMPLE_FREQUENCY		= 44100;
+const  PLAY_TIME				= 32;
+const  MASTER_VOLUME		= 0.0003;
+const  PI					= 3.1415926535;
+const  PI_2				= 2*PI;
+let g_wo = 0;
+const RAND_MAX = 1;
+
+function speakNow() {
+	var wordseries = [];
+	var textArr = document.getElementById("output").value.split("|");
+	for (var i = 0; i < textArr.length; i++) {
+		  if ( textArr[i].includes("-")) {
+			  var sayArr = textArr[i].split("-");
+			  var c = cFMT[ctlcom.indexOf(sayArr[0])] || '';
+			  var v = vFMT[vtlcom.indexOf(sayArr[1])] || '';
+			  var f = fFMT[ftlcom.indexOf(sayArr[2])] || '';
+			  var sayword = c +"|"+ v +"|" + f;
+				sayword = sayword.replace("||","|");
+				sayword = sayword.replace("| |","|");
+				if(sayword.slice(-1) == "|") {sayword = sayword.substring(0, sayword.length - 1)};
+				if(sayword.charAt(0) == "|") {sayword = sayword.substring(1)};
+				//alert("sayword :" + sayword);
+				
+			  var toneindx = ['M','L','H','F','R'].indexOf(sayArr[3]) || 0;
+			  var valueToPush = { };
+					valueToPush.ipa = textArr[i];
+					valueToPush.playseries = sayword;
+					valueToPush.tone = toneindx;
+					wordseries.push(valueToPush);
+
+			  } else {
+				var valueToPush = { };
+					valueToPush.ipa = textArr[i];
+					valueToPush.playseries = ["sil:5"];
+					valueToPush.tone = 0;
+					wordseries.push(valueToPush);
+			  }
+		  
+		  
+		  }
+		  //alert(JSON.stringify(wordseries));
+		var success = playSound(wordseries,0);
+}
+	
+function sleep(millis)
+	{
+		var date = new Date();
+		var curDate = null;
+		do { curDate = new Date(); }
+		while(curDate-date < millis);
+	}
+
+ function playSound(wordArr,indx) 
+ {
+	 if(indx < wordArr.length) {
+			//showToast(wordArr[indx].ipa);		
+		var showtext = wordArr[indx].ipa || "";
+		document.getElementById("monitor").value += showtext + "|";
+		var pArr =[];
+		var dArr = [];
+		var tmp = wordArr[indx].playseries.split("|");
+		for ( var l = 0; l < tmp.length; l++){
+			var stmp = tmp[l].split(":");
+			pArr.push(stmp[0]);
+			dArr.push(stmp[1]);
+		}
+		var tone = wordArr[indx].tone;
+		var waveArray = new Float32Array(9);
+		waveArray[0] = tone0[tone]* kspeed;
+		waveArray[1] = tone1[tone]* kspeed;
+		waveArray[2] = tone2[tone]* kspeed;
+		waveArray[3] = tone3[tone]* kspeed;
+		waveArray[4] = tone4[tone]* kspeed;
+		waveArray[5] = tone5[tone]* kspeed;
+		waveArray[6] = tone6[tone]* kspeed;
+		waveArray[7] = tone7[tone]* kspeed;
+		waveArray[8] = tone8[tone]* kspeed;
+	 
+		var arr = SynthSpeech(pArr, dArr);
+		//alert(arr.length);
+		if(arr.length > 0) {
+				var tonedur = 44100*arr.length;
+				var buf = new Float32Array(arr.length)
+				for (var i = 0; i < arr.length; i++) buf[i] = arr[i]
+				var buffer = audioContext.createBuffer(1, buf.length, audioContext.sampleRate)
+				buffer.copyToChannel(buf, 0)
+				var source = audioContext.createBufferSource();
+				source.buffer = buffer;
+				var filter = audioContext.createBiquadFilter();
+				filter.type = kfilter;
+				filter.frequency.value = 100;
+				filter.Q.value = 100;
+				filter.gain.value = 50;
+				source.connect(filter);
+				source.connect(audioContext.destination);
+				source.playbackRate.setValueCurveAtTime(waveArray, audioContext.currentTime, tonedur);
+				source.onended = function() {
+				sleep(200);
+				var success = playSound(wordArr,indx+1);
+				};
+				source.start(0);
+				return false;
+		  } else {
+		  sleep(200);
+			var success = playSound(wordArr,indx+1);
+		  }
+	 } else {
+		return true;
+	 }
+ }
+
+Array.prototype.extend = function(array) {
+    if (array.length < 150000) {
+        this.push.apply(this, array)
+    } else {
+        for (var i = 0, len = array.length; i < len; ++i) {
+            this.push(array[i]);
+        };
+    }  
+}
+// Auxiliary functions
+function CutLevel(x,lvl) {
+	if ( x > lvl )
+		return lvl;
+	if ( x < -lvl )
+		return -lvl;
+	return x;
+}
+function Sawtooth(x) {
+	return ( 0.5 - ( x - Math.floor(x / PI_2) * PI_2 ) / PI_2 );
+}
+/*struct Phoneme {
+	char p;
+	unsigned char f[3]; //0,1,2
+	unsigned char w[3]; //3,4,5
+	struct {
+		unsigned char len : 2; //6
+		unsigned char amp : 4; //7
+		unsigned char osc : 1; //8
+		unsigned char plosive : 1; //9
+	} Shape;
+};
+*/
+const g_phonemes ={	_b: [7.36,12.03,23.28,2.76,3.79,9.13,1.08,1,0,0],
+					_d: [7.49,15.64,25.75,1.28,3.81,8.04,0.64,1,0,0],
+					_k: [7.75,12.96,22.41,0.87,8.44,6.33,0.79,3,1,1],
+					_m: [7.9,11.39,24.48,1.12,2.44,6.01,0.74,3,0,0],
+					_n: [5.81,15.5,24.41,1.84,3.3,21.47,0.77,3,0,0],
+					_ng: [3.82,29.83,33.73,4.54,10.04,13.19,0.75,3,0,0],
+					_w: [4.88,7.29,27.57,0.56,0.64,6.5,3.24,3,0,0],
+					_y: [13.22,27.23,36.17,1.61,3.16,113.39,3.29,3,0,0],
+					b: [1.73,11.85,26.52,2.68,2.8,9.76,0.88,3,0,0],
+					c: [12.96,19.45,29.43,13.34,2.53,31,1.16,1,1,1],
+					ch: [7.75,21.88,36.77,0.78,4.85,27.47,1.37,3,1,0],
+					d: [1.78,10.6,36.61,2.49,0.69,17.33,0.86,1,0,0],
+					f: [7.98,22.56,29.01,0.81,3.02,34.36,1.25,3,0,1],
+					g: [3.95,13.4,26,4.94,4.34,4.16,0.32,2,1,0],
+					h: [8.71,22.84,27.79,1.04,5.68,4.39,1.01,3,1,0],
+					j: [14.4,22.71,31.27,1.46,5.88,15.03,0.69,1,0,0],
+					l: [1.75,23,35.5,0.88,12.78,12.86,0.37,3,0,0],
+					m: [1.74,17.54,26.04,2.51,2.07,1.83,0.74,3,0,0],
+					n: [1.8,13.26,23.89,5.93,1.41,10.96,0.89,3,0,0],
+					ng: [1.82,9.92,26.39,2.02,0.95,8.69,0.96,3,0,0],
+					p: [8.46,19.73,27.02,1.39,4.27,4.58,0.77,1,1,1],
+					ph: [3.97,17.45,28.51,0.88,4.07,6.67,0.55,1,1,1],
+					r: [3.68,15.33,23.74,3.73,2.5,16.11,0.71,3,0,0],
+					s: [10.17,18.2,27.98,1.1,2.86,7.24,1.54,3,1,0],
+					t: [5.54,16.22,27.07,0.76,2.64,8.79,1.24,3,0,0],
+					th: [1.83,12.64,23.6,1.08,11.49,6.59,0.25,1,1,1],
+					v: [2.59,15.82,25.2,1.17,2.86,4.16,1.1,3,0,0],
+					y: [2.23,21.01,35.71,2.5,18.22,95.19,0.96,3,0,0],
+					a: [3.47,20.52,36.88,1.54,13.83,18.93,2.22,3,0,0],
+					ae: [6.41,16.76,24.65,2.19,3.73,9.97,1.82,3,0,0],
+					ar: [4.84,12.84,23.64,0.49,3,6.9,4.39,3,0,0],
+					ee: [2.57,23.92,38.02,2.59,20.39,60.01,1.97,3,0,0],
+					er: [5.46,12.42,35.11,1.23,1.19,31.63,1.96,3,0,0],
+					eu: [3.25,18.05,25.07,3.28,1.45,5.32,2.28,3,0,0],
+					ia: [3.21,22.48,38.39,3.51,26.7,40.78,1.94,3,0,0],
+					o: [5.18,28.8,31.4,6.85,9.28,6.09,1.94,3,0,0],
+					or: [5.3,7.51,22.25,0.2,6.56,4.27,2.08,3,0,0],
+					oua: [3.6,19.44,36.58,4.23,1.54,45.16,3.92,3,0,0],
+					u: [3.97,29.42,32.1,5.93,14.99,9.77,1.92,3,0,0],
+					ua: [4.47,27.96,30.83,5.05,5.08,16.34,1.96,3,0,0],
+					sil: [1,1,1,1,1,1,2,0,0,0]
+};
+
+
+// Synthesizes speech and adds it to specified buffer
+function SynthSpeech(textArr,durArr) {
+	//alert(textArr + "\n" + durArr);
+	var S = "";
+	var Mbuf = [];
+	// Loop through all phonemes
+	for ( var i = 0; i < textArr.length;  i++ ) {
+		// Find phoneme description
+		var match_p;
+		var v = 0;
+		if ( textArr[i] != ' ' ) {
+			for (var p in g_phonemes) {
+				if ( p == textArr[i]) {
+				match_p = g_phonemes[p];			
+				v = match_p[7];
+				}
+			}
+		}
+		
+		// Generate sound
+		var sl = parseInt(parseFloat(durArr[i]) * match_p[6]  * (SAMPLE_FREQUENCY / 15));
+		var buf = [];
+		for ( var f = 0; f < 3; f++ ) {
+			var ff = match_p[f];
+			var freq = ff*(50.0/SAMPLE_FREQUENCY);
+			if ( ff == 0) {
+				Mbuf = overlapArrs(500,Mbuf, buf); 
+				//Mbuf.extend(Mbuf, buf); 
+				break;
+			}
+			var buf1Res = 0, buf2Res = 0;
+			var q = 1.0 - match_p[f+3] * (PI * 10.0 / SAMPLE_FREQUENCY);
+			var xp = 0;
+			for ( var s = 0; s < sl; s++ ) {
+				var n = Math.random()/RAND_MAX-0.5;
+				var x = n;
+				if ( match_p[8] == 0 ) {
+					x = Sawtooth ( s * (120.0 * PI_2 / SAMPLE_FREQUENCY) );
+					xp = 0;
+				}
+				// Apply formant filter
+				
+				x = x + 2.0 * Math.cos( PI_2 * freq ) * buf1Res * q - buf2Res * q * q;
+				buf2Res = buf1Res;
+				buf1Res = x;
+				x = 0.75 * xp + x * v;
+				xp = x;
+				// Anticlick function
+				x = x * CutLevel( Math.sin( PI * s / sl ) * 5, 1 );
+				//buf[s] += x;
+				if(buf[s]) {
+					buf[s] += x;
+				} else {
+					buf.push(x);
+				}
+				
+				
+			}
+			if (f == 2) {
+			Mbuf = overlapArrs(500,Mbuf, buf); //((3*sl/4)<<1);
+			//Mbuf.extend(Mbuf, buf);
+			//if ( match_p[9] == 1 ) 	Mbuf.(sl&0xfffffe);
+			};
+			
+		}
+		// Overlap neighbour phonemes
+		//buf[s] +=((3*sl/4)<<1);
+		//if ( match_p[9] == 1 ) 	buf[s] +=(sl&0xfffffe);
+	
+	}
+	return Mbuf;
+}
+
+function overlapArrs(nlap,headArr,tailArr) {
+	if (Boolean(headArr.length) == false ) return tailArr;
+	if (Boolean(tailArr.length) == false ) return headArr;
+	var olpArr =  headArr.slice(-nlap).map(function (num, idx) {
+	  return num + tailArr.slice(0, nlap)[idx];
+	});
+	var ret = [];
+	ret.extend(headArr.slice(0,headArr.length - nlap));
+	ret.extend(olpArr);
+	ret.extend(tailArr.slice(nlap - tailArr.length ));
+ 	//alert("h:" + headArr.length + " t:" + tailArr.length + " l:" + olpArr.length + " o:" + ret.length); 
+return  ret ;
+}
+
+function playPCMarray(data){
+	for ( var i = 0; i < data.length;i++) {
+		if (data[i] > 255 || data[i] < 0) {
+		if (data[i] > 255) S += String.fromCharCode(255);
+		if (data[i] < 0) S += String.fromCharCode(0);
+		} else {
+			S += String.fromCharCode(parseInt(data[i]));
+		}
+	}
+			var head  ='data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgA';
+	new Audio(head+btoa(S)).play();
+
+}
+</script>
+</html>
